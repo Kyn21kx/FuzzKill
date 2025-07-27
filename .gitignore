@@ -1,0 +1,6 @@
+.cache
+.zig-cache
+.vs
+.hx
+compile_commands.json
+zig-out
