@@ -3,7 +3,8 @@
 #include "../types/Error.hpp"
 #include <vector>
 
-namespace ProcessFetcher {
+namespace ProcessLayer {
 	EError FetchProcessesInto(std::vector<WinProcess>* target);
+
 }
 

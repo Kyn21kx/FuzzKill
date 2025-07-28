@@ -6,7 +6,10 @@ struct Font;
 
 class FuzzKillUI {
 public:
-	FuzzKillUI();
+	FuzzKillUI() = default;
+
+	void Init();
+	
 	void OnUpdate(float delta, Font* fonts);
 private:
 	void DrawUI();

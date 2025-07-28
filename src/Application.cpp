@@ -28,6 +28,7 @@ void Application::Init() {
     Clay_SetMeasureTextFunction(Raylib_MeasureText, fonts);
 
     this->LoadResources();
+    fuzzKillUI.Init();
 }
 
 void Application::Run() {
