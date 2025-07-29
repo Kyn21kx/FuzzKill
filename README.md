@@ -1,6 +1,10 @@
 # FuzzKill
 ## Fuzzy search everything, kill distractions.
 
+### Showcase
+
+![Fuzz - Made with Clipchamp](https://github.com/user-attachments/assets/d6eb0890-1392-4ad2-bac2-979a065d9188)
+
 ### Building
 This project uses the Zig toolchain for C and C++, [download the latest version of Zig](https://ziglang.org/learn/getting-started/)
 Then run
