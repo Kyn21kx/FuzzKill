@@ -58,7 +58,6 @@ void FuzzKillUI::Init() {
 }
 
 
-
 void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
     Vector2 windowSize = {(float)GetScreenWidth(), (float)GetScreenHeight()};
     
@@ -88,7 +87,7 @@ void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
 
 
 void FuzzKillUI::DrawUI() {	
-    CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }, .backgroundColor = ColorUtils::White(BG_COLOR_ALPHA)}) {
+    CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }, .backgroundColor = ColorUtils::White(BG_COLOR_ALPHA * 2)}) {
     	bool isPlaceholder = this->m_query.empty();
     	Clay_String headerText = isPlaceholder ? CLAY_STRING("Search for any running application...") :StrToClayString(this->m_query.c_str(), this->m_query.size());
         CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72)));
