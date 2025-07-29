@@ -4,7 +4,7 @@
 #define CLAY_IMPLEMENTATION
 #include "clay.h"
 #include "raylib.h"
-#include "renderer/clay_renderer_raylib.c"
+#include "renderer/clay_renderer_raylib.h"
 #include <cstdlib>
 
 constexpr int32_t INIT_WIDTH = 1080;
@@ -29,6 +29,7 @@ void Application::Init() {
 
     this->LoadResources();
     fuzzKillUI.Init();
+    SetWindowMonitor(1);
 }
 
 void Application::Run() {

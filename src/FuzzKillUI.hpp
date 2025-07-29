@@ -16,7 +16,13 @@ private:
 
 	void RefreshProcesses();
 
+	void DrawProcessListItem(const WinProcess& processInfo, int32_t index);
+	
+	void HandleKeyboardInput(float delta);
+	
 	std::vector<WinProcess> m_activeProcesses;
+	
+	int32_t selectedProcess = 0;
 	
 };
 

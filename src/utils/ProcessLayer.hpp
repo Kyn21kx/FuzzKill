@@ -6,5 +6,6 @@
 namespace ProcessLayer {
 	EError FetchProcessesInto(std::vector<WinProcess>* target);
 
+	void SwitchWindow(uint64_t hwnd);
 }
 

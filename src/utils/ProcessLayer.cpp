@@ -41,3 +41,8 @@ EError ProcessLayer::FetchProcessesInto(std::vector<WinProcess>* target) {
 	return EError::Ok;
 }
 
+
+void ProcessLayer::SwitchWindow(uint64_t hwnd) {
+	SetForegroundWindow(reinterpret_cast<HWND>(hwnd));
+}
+

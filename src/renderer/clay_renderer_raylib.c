@@ -1,40 +1,15 @@
-#ifndef CLAY_RAYLIB_RENDERER_C
-#define CLAY_RAYLIB_RENDERER_C
-#include "raylib.h"
+#include "clay_renderer_raylib.h"
 #include "raymath.h"
-#include "stdint.h"
-#include "string.h"
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <string.h>
 
 #define CLAY_RECTANGLE_TO_RAYLIB_RECTANGLE(rectangle) (Rectangle) { .x = rectangle.x, .y = rectangle.y, .width = rectangle.width, .height = rectangle.height }
 #define CLAY_COLOR_TO_RAYLIB_COLOR(color) (Color) { .r = (unsigned char)roundf(color.r), .g = (unsigned char)roundf(color.g), .b = (unsigned char)roundf(color.b), .a = (unsigned char)roundf(color.a) }
 
-inline Camera Raylib_camera;
-
-typedef enum
-{
-    CUSTOM_LAYOUT_ELEMENT_TYPE_3D_MODEL
-} CustomLayoutElementType;
-
-typedef struct
-{
-    Model model;
-    float scale;
-    Vector3 position;
-    Matrix rotation;
-} CustomLayoutElement_3DModel;
-
-typedef struct
-{
-    CustomLayoutElementType type;
-    union {
-        CustomLayoutElement_3DModel model;
-    } customData;
-} CustomLayoutElement;
+Camera Raylib_camera;
 
 // Get a ray trace from the screen position (i.e mouse) within a specific section of the screen
-inline Ray GetScreenToWorldPointWithZDistance(Vector2 position, Camera camera, int screenWidth, int screenHeight, float zDistance)
+Ray GetScreenToWorldPointWithZDistance(Vector2 position, Camera camera, int screenWidth, int screenHeight, float zDistance)
 {
     Ray ray = { 0 };
 
@@ -83,7 +58,7 @@ inline Ray GetScreenToWorldPointWithZDistance(Vector2 position, Camera camera, i
 }
 
 
-static inline Clay_Dimensions Raylib_MeasureText(Clay_StringSlice text, Clay_TextElementConfig *config, void *userData) {
+Clay_Dimensions Raylib_MeasureText(Clay_StringSlice text, Clay_TextElementConfig *config, void *userData) {
     // Measure string size for Font
     Clay_Dimensions textSize = { 0 };
 
@@ -126,7 +101,7 @@ static inline Clay_Dimensions Raylib_MeasureText(Clay_StringSlice text, Clay_Tex
     return textSize;
 }
 
-inline void Clay_Raylib_Initialize(int width, int height, const char *title, unsigned int flags) {
+void Clay_Raylib_Initialize(int width, int height, const char *title, unsigned int flags) {
     SetConfigFlags(flags);
     InitWindow(width, height, title);
 //    EnableEventWaiting();
@@ -138,7 +113,7 @@ static char *temp_render_buffer = NULL;
 static int temp_render_buffer_len = 0;
 
 // Call after closing the window to clean up the render buffer
-inline void Clay_Raylib_Close()
+void Clay_Raylib_Close()
 {
     if(temp_render_buffer) free(temp_render_buffer);
     temp_render_buffer_len = 0;
@@ -147,7 +122,7 @@ inline void Clay_Raylib_Close()
 }
 
 
-inline void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, Font* fonts)
+void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, Font* fonts)
 {
     for (int j = 0; j < renderCommands.length; j++)
     {
@@ -265,4 +240,3 @@ inline void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, Font* fon
         }
     }
 }
-#endif
