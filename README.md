@@ -1,6 +1,14 @@
 # FuzzKill
 ## Fuzzy search everything, kill distractions.
 
+### Building
+This project uses the Zig toolchain for C and C++, [download the latest version of Zig](https://ziglang.org/learn/getting-started/)
+Then run
+```ps
+zig build
+```
+on the root of the project
+
 ### Why?
 The concept is simple, we do nog have to waste our time and brain power visually searching the right window to switch to, things can be faster, they can be better.
 
