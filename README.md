@@ -3,7 +3,7 @@
 
 ### Showcase
 
-![Fuzz - Made with Clipchamp](https://github.com/user-attachments/assets/d6eb0890-1392-4ad2-bac2-979a065d9188)
+https://github.com/user-attachments/assets/8463186d-d534-4608-a0a2-6ca334cea582
 
 ### Building
 This project uses the Zig toolchain for C and C++, [download the latest version of Zig](https://ziglang.org/learn/getting-started/)
