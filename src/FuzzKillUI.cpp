@@ -35,7 +35,6 @@ Clay_String StrToClayString(const char* data, size_t size) noexcept {
 
 void FuzzKillUI::Init() {
 	// Gather all the processes here from the windows API
-	printf("Calling init!\n");
 	EError err = ProcessLayer::FetchProcessesInto(&this->m_activeProcesses);
 	if (err != EError::Ok) {
 		fprintf(stderr, "Failed to query process data, error no: %d\n", static_cast<uint32_t>(err));
@@ -84,23 +83,34 @@ void FuzzKillUI::DrawUI() {
     	bool isPlaceholder = this->m_query.empty();
     	Clay_String headerText = isPlaceholder ? CLAY_STRING("Search for any running application...") :StrToClayString(this->m_query.c_str(), this->m_query.size());
         CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72)));
-        int32_t cntr = 0;
-        for (const WinProcess& process : this->m_activeProcesses) {
-        	this->DrawProcessListItem(process, cntr);
-        	cntr++;
+        for (size_t i = 0; i < this->m_filteredProcesses.size(); i++) {
+        	const WinProcess& process = this->m_activeProcesses[this->m_filteredProcesses[i]];
+        	this->DrawProcessListItem(process, i);
         }
     }
+}
+
+
+void FuzzKillUI::ResetFilterIfNeeded() {
+	if (this->m_filteredProcesses.empty()) {
+		for (int32_t i = 0; i < this->m_activeProcesses.size(); i++) {
+			this->m_filteredProcesses.emplace_back(i);
+		}
+	}
 }
 
 void FuzzKillUI::HandleKeyboardInput(float delta) {
 	int32_t c = GetCharPressed();
 	if (c > 0) {
 		this->m_query += c;
-		printf("%s\n", this->m_query.c_str());
 		this->m_filteredProcesses = FuzzyFindIndices<std::vector<std::string_view>, std::string_view>(this->m_activeProcessesNames, this->m_query);
+		this->selectedProcess = 0;
 	}
 	if ((IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) && !this->m_query.empty()) {
 		this->m_query.erase(this->m_query.size() - 1);
+		this->m_filteredProcesses = FuzzyFindIndices<std::vector<std::string_view>, std::string_view>(this->m_activeProcessesNames, this->m_query);
+		this->selectedProcess = 0;
+		this->ResetFilterIfNeeded();
 	}
 	if (IsKeyPressed(KEY_DOWN) || IsKeyPressedRepeat(KEY_DOWN)) {
 		this->selectedProcess = (this->selectedProcess + 1) % this->m_filteredProcesses.size();

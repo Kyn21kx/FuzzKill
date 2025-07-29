@@ -19,7 +19,7 @@ void HandleClayErrors(Clay_ErrorData error) {
 }
 
 void Application::Init() {
-	printf("Init!\n");
+	SetTraceLogLevel(LOG_ERROR);
 	uint32_t memorySize = Clay_MinMemorySize();
 	clayArena = Clay_CreateArenaWithCapacityAndMemory(memorySize, malloc(memorySize));
 
