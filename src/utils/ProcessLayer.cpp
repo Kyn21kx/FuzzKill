@@ -41,7 +41,23 @@ EError ProcessLayer::FetchProcessesInto(std::vector<WinProcess>* target) {
 	return EError::Ok;
 }
 
-void ProcessLayer::SwitchWindow(uint64_t hwnd) {
-	SetForegroundWindow(reinterpret_cast<HWND>(hwnd));
-}
 
+void ProcessLayer::SwitchWindow(uint64_t hwnd) {
+    const HWND windowHandle = reinterpret_cast<HWND>(hwnd);
+    if (!IsWindow(windowHandle)) {
+        return;
+    }
+    
+    // If the window is minimized, restore it first
+    if (IsIconic(windowHandle)) {
+        ShowWindow(windowHandle, SW_RESTORE);
+    }
+    
+    ShowWindow(windowHandle, SW_SHOW);
+    
+    // Bring the window to the top of the Z order
+    BringWindowToTop(windowHandle);
+    
+    SetForegroundWindow(windowHandle);
+    SetFocus(windowHandle);
+}

@@ -64,7 +64,7 @@ void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
     
     BeginDrawing();
     // ClearBackground(ColorUtils::ToRaylibColor(ColorUtils::White(0.0f)));
-    auto bgColor = DARKBLUE;
+    auto bgColor = BLANK;
     bgColor.a = BG_COLOR_ALPHA;
     ClearBackground(bgColor);
 
@@ -79,7 +79,7 @@ void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
 
 
 void FuzzKillUI::DrawUI() {	
-    CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }}) {
+    CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }, .backgroundColor = ColorUtils::White(BG_COLOR_ALPHA)}) {
     	bool isPlaceholder = this->m_query.empty();
     	Clay_String headerText = isPlaceholder ? CLAY_STRING("Search for any running application...") :StrToClayString(this->m_query.c_str(), this->m_query.size());
         CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72)));
