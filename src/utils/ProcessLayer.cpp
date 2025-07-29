@@ -61,3 +61,4 @@ void ProcessLayer::SwitchWindow(uint64_t hwnd) {
     SetForegroundWindow(windowHandle);
     SetFocus(windowHandle);
 }
+

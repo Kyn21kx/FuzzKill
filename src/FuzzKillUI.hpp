@@ -10,6 +10,8 @@ class FuzzKillUI {
 public:
 	FuzzKillUI() = default;
 
+	void PreAllocate();
+
 	void Init();
 	
 	void OnUpdate(float delta, Font* fonts);

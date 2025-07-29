@@ -33,15 +33,24 @@ Clay_String StrToClayString(const char* data, size_t size) noexcept {
 }
 
 
+void FuzzKillUI::PreAllocate() {
+	this->m_query.reserve(WinProcess::MAX_PROCESS_NAME);
+	this->m_activeProcessesNames.reserve(this->m_activeProcesses.size());
+}
+
 void FuzzKillUI::Init() {
+	this->m_query = "";
+	this->selectedProcess = 0;
+	this->m_filteredProcesses.clear();
+	this->m_activeProcesses.clear();
+	this->m_activeProcessesNames.clear();
 	// Gather all the processes here from the windows API
 	EError err = ProcessLayer::FetchProcessesInto(&this->m_activeProcesses);
 	if (err != EError::Ok) {
 		fprintf(stderr, "Failed to query process data, error no: %d\n", static_cast<uint32_t>(err));
 		return;
 	}
-	this->m_query.reserve(WinProcess::MAX_PROCESS_NAME);
-	this->m_activeProcessesNames.reserve(this->m_activeProcesses.size());
+
 	for (int32_t i = 0; i < this->m_activeProcesses.size(); i++) {
 		this->m_filteredProcesses.emplace_back(i);
 		this->m_activeProcessesNames.emplace_back(this->m_activeProcesses[i].name);
@@ -106,6 +115,9 @@ void FuzzKillUI::HandleKeyboardInput(float delta) {
 		this->m_filteredProcesses = FuzzyFindIndices<std::vector<std::string_view>, std::string_view>(this->m_activeProcessesNames, this->m_query);
 		this->selectedProcess = 0;
 	}
+	if (IsKeyPressed(KEY_ESCAPE)) {
+		SetWindowState(FLAG_WINDOW_HIDDEN);
+	}
 	if ((IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) && !this->m_query.empty()) {
 		this->m_query.erase(this->m_query.size() - 1);
 		this->m_filteredProcesses = FuzzyFindIndices<std::vector<std::string_view>, std::string_view>(this->m_activeProcessesNames, this->m_query);
@@ -122,6 +134,8 @@ void FuzzKillUI::HandleKeyboardInput(float delta) {
 		int32_t processIndex = this->m_filteredProcesses[this->selectedProcess];
 		const WinProcess& process = this->m_activeProcesses[processIndex];
 		ProcessLayer::SwitchWindow(process.windowHandle);
+		// Kill raylib here
+		SetWindowState(FLAG_WINDOW_HIDDEN);
 	}
 }
 

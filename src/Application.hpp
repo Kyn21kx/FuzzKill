@@ -3,6 +3,8 @@
 
 class Application {
 public:
+	void PreAllocate();
+
 	void Init();
 	
 	void Run();
