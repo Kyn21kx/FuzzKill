@@ -9,6 +9,9 @@ zig build
 ```
 on the root of the project
 
+### Shortcut
+Once the program starts it will listen for the `ALT + SHIFT + DELETE` command to pop up, this can be customized on `main.cpp` although I suggest using custom shortcuts like macros with ZMK to make this a better experience.
+
 ### Why?
 The concept is simple, we do nog have to waste our time and brain power visually searching the right window to switch to, things can be faster, they can be better.
 
