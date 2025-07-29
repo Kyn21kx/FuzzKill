@@ -4,11 +4,14 @@
 #include "renderer/clay_renderer_raylib.h"
 #include "types/Error.hpp"
 #include "types/WinProcess.hpp"
+#include "utils/ArrayUtils.h"
 #include "utils/ColorUtils.hpp"
 #include "utils/ProcessLayer.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <string_view>
+#include <vector>
 
 // TODO: Move all of the Win32API stuff to a wrapper
 
@@ -36,6 +39,13 @@ void FuzzKillUI::Init() {
 	EError err = ProcessLayer::FetchProcessesInto(&this->m_activeProcesses);
 	if (err != EError::Ok) {
 		fprintf(stderr, "Failed to query process data, error no: %d\n", static_cast<uint32_t>(err));
+		return;
+	}
+	this->m_query.reserve(WinProcess::MAX_PROCESS_NAME);
+	this->m_activeProcessesNames.reserve(this->m_activeProcesses.size());
+	for (int32_t i = 0; i < this->m_activeProcesses.size(); i++) {
+		this->m_filteredProcesses.emplace_back(i);
+		this->m_activeProcessesNames.emplace_back(this->m_activeProcesses[i].name);
 	}
 }
 
@@ -71,7 +81,9 @@ void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
 
 void FuzzKillUI::DrawUI() {	
     CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }}) {
-        CLAY_TEXT(CLAY_STRING("Welcome to FuzzKill!"), CLAY_TEXT_CONFIG(DefaultText(72)));
+    	bool isPlaceholder = this->m_query.empty();
+    	Clay_String headerText = isPlaceholder ? CLAY_STRING("Search for any running application...") :StrToClayString(this->m_query.c_str(), this->m_query.size());
+        CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72)));
         int32_t cntr = 0;
         for (const WinProcess& process : this->m_activeProcesses) {
         	this->DrawProcessListItem(process, cntr);
@@ -81,14 +93,25 @@ void FuzzKillUI::DrawUI() {
 }
 
 void FuzzKillUI::HandleKeyboardInput(float delta) {
+	int32_t c = GetCharPressed();
+	if (c > 0) {
+		this->m_query += c;
+		printf("%s\n", this->m_query.c_str());
+		this->m_filteredProcesses = FuzzyFindIndices<std::vector<std::string_view>, std::string_view>(this->m_activeProcessesNames, this->m_query);
+	}
+	if ((IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) && !this->m_query.empty()) {
+		this->m_query.erase(this->m_query.size() - 1);
+	}
 	if (IsKeyPressed(KEY_DOWN) || IsKeyPressedRepeat(KEY_DOWN)) {
-		this->selectedProcess = (this->selectedProcess + 1) % this->m_activeProcesses.size();
+		this->selectedProcess = (this->selectedProcess + 1) % this->m_filteredProcesses.size();
 	}
 	else if (IsKeyPressed(KEY_UP) || IsKeyPressedRepeat(KEY_UP)) {
-		this->selectedProcess = (this->selectedProcess - 1) % this->m_activeProcesses.size();
+		this->selectedProcess = (this->selectedProcess - 1) % this->m_filteredProcesses.size();
 	}
 	if (IsKeyPressed(KEY_ENTER)) {
-		ProcessLayer::SwitchWindow(this->m_activeProcesses[this->selectedProcess].windowHandle);
+		int32_t processIndex = this->m_filteredProcesses[this->selectedProcess];
+		const WinProcess& process = this->m_activeProcesses[processIndex];
+		ProcessLayer::SwitchWindow(process.windowHandle);
 	}
 }
 

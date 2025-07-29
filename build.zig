@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) void {
 
     exe.addIncludePath(b.path("third_party/clay/include/"));
     exe.addIncludePath(b.path("third_party/raylib/include/"));
+    exe.addIncludePath(b.path("third_party/zadeh/include/"));
 
     exe.linkLibrary(clayLibRendering);
     exe.linkSystemLibrary("raylib");

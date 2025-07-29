@@ -2,6 +2,8 @@
 
 #include <vector>
 #include "types/WinProcess.hpp"
+#include <string>
+
 struct Font;
 
 class FuzzKillUI {
@@ -21,6 +23,9 @@ private:
 	void HandleKeyboardInput(float delta);
 	
 	std::vector<WinProcess> m_activeProcesses;
+	std::vector<std::string_view> m_activeProcessesNames;
+	std::vector<size_t> m_filteredProcesses;
+	std::string m_query;
 	
 	int32_t selectedProcess = 0;
 	
