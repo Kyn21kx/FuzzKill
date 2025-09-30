@@ -6,10 +6,16 @@
 #include "types/WinProcess.hpp"
 #include "utils/ArrayUtils.h"
 #include "utils/ColorUtils.hpp"
+#include "utils/MathUtils.hpp"
 #include "utils/ProcessLayer.hpp"
+#include <cctype>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <sstream>
+#include <stack>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -130,13 +136,76 @@ void FuzzKillUI::HandleKeyboardInput(float delta) {
 		this->selectedProcess = (this->selectedProcess - 1) % this->m_filteredProcesses.size();
 	}
 	if (IsKeyPressed(KEY_ENTER)) {
-		int32_t processIndex = this->m_filteredProcesses[this->selectedProcess];
-		const WinProcess& process = this->m_activeProcesses[processIndex];
-		ProcessLayer::SwitchWindow(process.windowHandle);
-		// Kill raylib here
-		SetWindowState(FLAG_WINDOW_HIDDEN);
+		this->OnTextSubmit();
 	}
 }
+
+EError ParseOperation(const std::string& expression, float* outResult) {
+	// Let's check what type of operation this is
+	std::stack<MathUtils::OperationType> operators;
+	std::stack<float> numbers;
+
+	std::stringstream stream(expression);
+	constexpr size_t tokenMaxSize = 8;
+	constexpr char tokenSeparator = ' ';
+
+	std::string token;
+	token.reserve(tokenMaxSize);
+
+	// We parse the string token by token (space delimitted)
+	while (std::getline(stream, token, tokenSeparator)) {
+		if (token.empty()) continue;
+		// For most ops we can check only the token's first character
+		if (std::isdigit(token[0])) {
+			float val = std::strtof(token.c_str(), nullptr);
+			numbers.push(val);
+			continue;
+		}
+		if (MathUtils::IsOperator(token[0])) {
+			while (!operators.empty()) {
+				// Pop two numbers and one operator
+                float b = numbers.top();
+                numbers.pop();
+                float a = numbers.top();
+                numbers.pop();
+                MathUtils::OperationType op = operators.top();
+                operators.pop();
+                // Apply the operator to the numbers and
+                // push the result onto the operand stack
+                float opResult = MathUtils::ApplyOperation(a, b, op);
+                numbers.push(opResult);
+			}
+			continue;
+		}
+	}
+
+
+	if (operators.empty() || numbers.size() < 2) {
+		// Not enough operators or operands to execute an action
+		return EError::ParseFailed;
+	}
+
+	return EError::Ok;
+}
+
+void FuzzKillUI::OnTextSubmit() {
+	// Check first if the string is a math expression
+	float operationResult;
+	EError operationErr = ParseOperation(this->m_query, &operationResult);
+	if (operationErr == EError::Ok) { // It WAS a math expression, let's update the UI accordingly
+
+		return;
+	}
+
+	// TODO: Maybe do a shake or something
+	if(this->selectedProcess >= this->m_filteredProcesses.size()) return;
+	int32_t processIndex = this->m_filteredProcesses[this->selectedProcess];
+	const WinProcess& process = this->m_activeProcesses[processIndex];
+	ProcessLayer::SwitchWindow(process.windowHandle);
+	// Kill raylib here
+	SetWindowState(FLAG_WINDOW_HIDDEN);
+}
+
 
 void FuzzKillUI::DrawProcessListItem(const WinProcess& processInfo, int32_t index) {
 	const Clay_LayoutConfig layoutConfig = {

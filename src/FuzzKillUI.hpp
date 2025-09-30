@@ -25,6 +25,8 @@ private:
 	void HandleKeyboardInput(float delta);
 	
 	void ResetFilterIfNeeded();
+
+	void OnTextSubmit();
 	
 	std::vector<WinProcess> m_activeProcesses;
 	std::vector<std::string_view> m_activeProcessesNames;
