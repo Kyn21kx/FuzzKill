@@ -1,6 +1,15 @@
 # FuzzKill
 ## Fuzzy search everything, kill distractions.
 
+<!--toc:start-->
+- [FuzzKill](#fuzzkill)
+  - [Showcase](#showcase)
+  - [Building](#building)
+  - [Shortcut](#shortcut)
+  - [Why?](#why)
+  - [Additional Features](#additional-features)
+<!--toc:end-->
+
 ### Showcase
 
 https://github.com/user-attachments/assets/8463186d-d534-4608-a0a2-6ca334cea582
