@@ -7,5 +7,7 @@ enum class EError : uint32_t {
 	FailedToFetchProcesses,
 	FailedToOpenProcess,
 	NoWindowFound,
-	FailedToEnumModuleFromProcess
+	FailedToEnumModuleFromProcess,
+	DivideByZero,
+	ParseFailed
 };

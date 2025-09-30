@@ -27,6 +27,7 @@ void Application::PreAllocate() {
 	Clay_Raylib_Initialize(INIT_WIDTH, INIT_HEIGHT, "FuzzKill", FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN);
 	Clay_Initialize(clayArena, (Clay_Dimensions){INIT_WIDTH, INIT_HEIGHT}, (Clay_ErrorHandler){HandleClayErrors});
     Clay_SetMeasureTextFunction(Raylib_MeasureText, fonts);
+    SetWindowMonitor(1);
 }
 
 void Application::Init() {
