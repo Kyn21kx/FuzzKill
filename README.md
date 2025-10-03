@@ -33,3 +33,6 @@ This is why I made FuzzKill, it was an idea that was floating around my head for
 ### Additional Features
 - Calculator
   - You can open up FuzzKill and type in any simple math expression, if you hit enter you will see the result pop up
+
+https://github.com/user-attachments/assets/ef59d543-bc46-41e7-b052-bf37f3b3df59
+
