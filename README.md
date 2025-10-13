@@ -9,6 +9,10 @@
   - [Why?](#why)
   - [Additional Features](#additional-features)
 <!--toc:end-->
+<center>
+<img width="830" height="896" alt="FuzzKillIdeaLogoV2" src="https://github.com/user-attachments/assets/fc0baad5-2e22-4b7c-aac4-d3ea89f60a67" />  
+</center>
+
 
 ### Showcase
 
