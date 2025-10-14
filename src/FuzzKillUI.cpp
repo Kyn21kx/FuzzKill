@@ -6,6 +6,7 @@
 #include "types/WinProcess.hpp"
 #include "utils/ArrayUtils.h"
 #include "utils/ColorUtils.hpp"
+#include "utils/ConfigLayer.hpp"
 #include "utils/MathUtils.hpp"
 #include "utils/ProcessLayer.hpp"
 #include <cctype>
@@ -26,7 +27,8 @@ constexpr float BG_COLOR_ALPHA = 50;
 constexpr float INPUT_DELAY_TIME = 0.16f;
 float inputDelayTimer = 0.f;
 
-constexpr Clay_TextElementConfig DefaultText(uint16_t fontSize, Clay_Color color = ColorUtils::Black()) {
+Clay_TextElementConfig DefaultText(uint16_t fontSize, const ConfigData& config) {
+	Clay_Color color = ColorUtils::ToClayColor(config.foregroundColor);
 	return {
 		.textColor = color,	
 		.fontId = 0,
@@ -42,6 +44,8 @@ Clay_String StrToClayString(const char* data, size_t size) noexcept {
 void FuzzKillUI::PreAllocate() {
 	this->m_query.reserve(WinProcess::MAX_PROCESS_NAME);
 	this->m_activeProcessesNames.reserve(this->m_activeProcesses.size());
+	EError err;
+	this->m_config = ReadConfigFile("fuzzkill.conf", &err);
 }
 
 void FuzzKillUI::Init() {
@@ -78,9 +82,8 @@ void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
 
     
     BeginDrawing();
-    // ClearBackground(ColorUtils::ToRaylibColor(ColorUtils::White(0.0f)));
-    auto bgColor = BLANK;
-    bgColor.a = BG_COLOR_ALPHA;
+    // This is absolutely monstrous, but if it's here it is bc it worked
+    auto bgColor = ColorUtils::ToRaylibColor(this->m_config.backgroundColor);
     ClearBackground(bgColor);
 
     this->HandleKeyboardInput(delta);
@@ -94,13 +97,14 @@ void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
 
 
 void FuzzKillUI::DrawUI() {	
-    CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }, .backgroundColor = ColorUtils::White(BG_COLOR_ALPHA * 2)}) {
+	const Clay_Color backgroundColor = ColorUtils::ToClayColor(this->m_config.backgroundColor);
+    CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }, .backgroundColor = backgroundColor}) {
     	bool isPlaceholder = this->m_query.empty();
     	Clay_String headerText = isPlaceholder ? CLAY_STRING("Search for any running application...") :StrToClayString(this->m_query.c_str(), this->m_query.size());
         if (this->m_query.empty() && strlen(this->m_operationResultStr) > 0) {
         	headerText = StrToClayString(this->m_operationResultStr, strlen(this->m_operationResultStr));
         }
-        CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72)));
+        CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72, this->m_config)));
         for (size_t i = 0; i < this->m_filteredProcesses.size(); i++) {
         	const WinProcess& process = this->m_activeProcesses[this->m_filteredProcesses[i]];
         	this->DrawProcessListItem(process, i);
@@ -260,12 +264,12 @@ void FuzzKillUI::DrawProcessListItem(const WinProcess& processInfo, int32_t inde
 	const Clay_BorderElementConfig borderConfig = {
 		.color = ColorUtils::Red()
 	};
-	constexpr Clay_Color inactiveColor = ColorUtils::White(BG_COLOR_ALPHA * 2);
-	constexpr Clay_Color activeColor = ColorUtils::Red(BG_COLOR_ALPHA * 2);
+	const Clay_Color inactiveColor = ColorUtils::ToClayColor(this->m_config.itemColor);
+	const Clay_Color activeColor = ColorUtils::ToClayColor(this->m_config.highlightColor);
 
 	Clay_String nameStr = StrToClayString(processInfo.name, strlen(processInfo.name));
 	CLAY({ .id = CLAY_IDI("ProcessContainer", index), .layout = layoutConfig, .backgroundColor = index == selectedProcess ? activeColor : inactiveColor, .border = borderConfig}) {
-	    CLAY_TEXT(nameStr, CLAY_TEXT_CONFIG(DefaultText(32)));
+	    CLAY_TEXT(nameStr, CLAY_TEXT_CONFIG(DefaultText(32, this->m_config)));
 	}
 	
 }
@@ -284,6 +288,6 @@ void FuzzKillUI::DrawListContainer(const std::string_view& text) {
 	Clay_String nameStr = StrToClayString(text.data(), text.size());
 	// TODO: Fix the id here
 	CLAY({ .id = CLAY_IDI("ListContainer", 0), .layout = layoutConfig, .backgroundColor = inactiveColor, .border = borderConfig}) {
-	    CLAY_TEXT(nameStr, CLAY_TEXT_CONFIG(DefaultText(32)));
+	    CLAY_TEXT(nameStr, CLAY_TEXT_CONFIG(DefaultText(32, this->m_config)));
 	}
 }

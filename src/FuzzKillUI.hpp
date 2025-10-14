@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "types/WinProcess.hpp"
+#include "utils/ConfigLayer.hpp"
 #include <string>
 
 struct Font;
@@ -36,8 +37,8 @@ private:
 	std::vector<size_t> m_filteredProcesses;
 	std::string m_query;
 	char m_operationResultStr[MAX_OPERATION_RESULT_COUNT] = "";
-	
 	int32_t selectedProcess = 0;
+	ConfigData m_config;
 	
 };
 

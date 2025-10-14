@@ -17,7 +17,7 @@ pub fn build(b: *std.Build) void {
     clayLibRendering.linkSystemLibrary("c");
 
     const compileFlags = &[_][]const u8{ "-std=c++20", "-Wno-reorder" };
-    const sources = &[_][]const u8{ "main.cpp", "Application.cpp", "FuzzKillUI.cpp", "utils/ProcessLayer.cpp" };
+    const sources = &[_][]const u8{ "main.cpp", "Application.cpp", "FuzzKillUI.cpp", "utils/ProcessLayer.cpp", "utils/ConfigLayer.cpp" };
     exe.addCSourceFiles(.{ .files = sources, .flags = compileFlags, .language = .cpp, .root = b.path("src/") });
 
     zcc.createStep(b, "cdb", targets.toOwnedSlice() catch @panic("OOM"));

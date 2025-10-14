@@ -9,5 +9,6 @@ enum class EError : uint32_t {
 	NoWindowFound,
 	FailedToEnumModuleFromProcess,
 	DivideByZero,
-	ParseFailed
+	ParseFailed,
+	FileNotFound
 };
