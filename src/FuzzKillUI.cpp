@@ -6,6 +6,7 @@
 #include "types/WinProcess.hpp"
 #include "utils/ArrayUtils.h"
 #include "utils/ColorUtils.hpp"
+#include "utils/ConfigLayer.hpp"
 #include "utils/MathUtils.hpp"
 #include "utils/ProcessLayer.hpp"
 #include <cctype>
@@ -42,6 +43,8 @@ Clay_String StrToClayString(const char* data, size_t size) noexcept {
 void FuzzKillUI::PreAllocate() {
 	this->m_query.reserve(WinProcess::MAX_PROCESS_NAME);
 	this->m_activeProcessesNames.reserve(this->m_activeProcesses.size());
+	EError err;
+	this->m_config = ReadConfigFile("fuzzkill.config", &err);
 }
 
 void FuzzKillUI::Init() {
@@ -78,9 +81,8 @@ void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
 
     
     BeginDrawing();
-    // ClearBackground(ColorUtils::ToRaylibColor(ColorUtils::White(0.0f)));
-    auto bgColor = BLANK;
-    bgColor.a = BG_COLOR_ALPHA;
+    // This is absolutely monstrous, but if it's here it is bc it worked
+    auto bgColor = ColorUtils::ToRaylibColor(this->m_config.backgroundColor);
     ClearBackground(bgColor);
 
     this->HandleKeyboardInput(delta);

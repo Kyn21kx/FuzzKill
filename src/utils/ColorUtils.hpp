@@ -75,6 +75,23 @@ namespace ColorUtils {
 			.r = static_cast<unsigned char>(color.r)
 		};
 	}
+
+	constexpr inline Color ToRaylibColor(const uint32_t& color) {
+		constexpr uint32_t RED_BITS = 0xFF000000;
+		constexpr uint32_t RED_OFFSET = 24;
+		constexpr uint32_t GREEN_BITS = 0x00FF0000;
+		constexpr uint32_t GREEN_OFFSET = 16;
+		constexpr uint32_t BLUE_BITS = 0x0000FF00;
+		constexpr uint32_t BLUE_OFFSET = 8;
+		constexpr uint32_t ALPHA_BITS = 0x000000FF;
+		constexpr uint32_t ALPHA_OFFSET = 0;
+		return {
+			.a = static_cast<uint8_t>((color & ALPHA_BITS) >> ALPHA_OFFSET),
+			.b = static_cast<uint8_t>((color & BLUE_BITS) >> BLUE_OFFSET),
+			.g = static_cast<uint8_t>((color & GREEN_BITS) >> GREEN_OFFSET),
+			.r = static_cast<uint8_t>((color & RED_BITS) >> RED_OFFSET)
+		};
+	}
 	
 	// // Semantic UI colors
 	// constexpr Clay_Color Primary() {
