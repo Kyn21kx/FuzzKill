@@ -1,19 +1,14 @@
 // raddbg 0.9.19 project file
 
-recent_file: path: "src/utils/colorutils.hpp"
 recent_file: path: "src/FuzzKillUI.cpp"
-recent_file: path: "src/application.cpp"
 recent_file: path: "src/utils/configlayer.cpp"
+recent_file: path: "src/utils/colorutils.hpp"
+recent_file: path: "src/application.cpp"
 recent_file: path: "../../../../programdata/chocolatey/lib/zig/tools/zig-windows-x86_64-0.14.0/lib/libcxx/include/string_view"
 recent_file: path: "src/main.cpp"
 target:
 {
   executable: "zig-out/bin/FuzzKill.exe"
-  working_directory: "zig-out/bin/"
+  working_directory: "zig-out/bin"
   enabled: 1
-}
-breakpoint:
-{
-  source_location: "src/FuzzKillUI.cpp:85:1"
-  hit_count: 1
 }

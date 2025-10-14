@@ -3,6 +3,7 @@
 #pragma once
 #include "clay.h"
 #include "raylib.h"
+#include <cstdint>
 
 namespace ColorUtils {
 
@@ -90,6 +91,17 @@ namespace ColorUtils {
 			.b = static_cast<uint8_t>((color & BLUE_BITS) >> BLUE_OFFSET),
 			.g = static_cast<uint8_t>((color & GREEN_BITS) >> GREEN_OFFSET),
 			.r = static_cast<uint8_t>((color & RED_BITS) >> RED_OFFSET)
+		};
+	}
+
+	constexpr inline Clay_Color ToClayColor(const uint32_t& color) {
+		// A bit awful, but meh
+		Color raylibColor = ToRaylibColor(color);
+		return {
+			.a = static_cast<float>(raylibColor.a),
+			.b = static_cast<float>(raylibColor.b),
+			.g = static_cast<float>(raylibColor.g),
+			.r = static_cast<float>(raylibColor.r),
 		};
 	}
 	

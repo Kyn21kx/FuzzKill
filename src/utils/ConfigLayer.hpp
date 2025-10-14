@@ -15,7 +15,9 @@ enum class EConfigStages : uint8_t {
 	Flags = 0,
 	BGColor,
 	FGColor,
-	BorderColor
+	BorderColor,
+	HighlightColor,
+	ItemColor
 };
 
 struct ConfigData {
@@ -23,6 +25,8 @@ struct ConfigData {
 	uint32_t backgroundColor;
 	uint32_t foregroundColor;
 	uint32_t borderColor;
+	uint32_t highlightColor;
+	uint32_t itemColor;
 };
 
 constexpr size_t MAX_LINE_LENGTH = 13;
