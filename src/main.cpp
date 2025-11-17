@@ -1,4 +1,6 @@
 #include "Application.hpp"
+#include <cstdio>
+#include <cstdlib>
 
 Application g_app;
 

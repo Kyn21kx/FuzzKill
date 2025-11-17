@@ -1,4 +1,5 @@
 #include "ProcessLayer.hpp"
+#include "ImageUtils.hpp"
 #include <Windows.h>
 #include <Psapi.h>
 #include <array>
@@ -10,12 +11,16 @@
 #include <libloaderapi.h>
 #include <minwindef.h>
 #include <processthreadsapi.h>
+#include <shellapi.h>
 #include <string.h>
 #include <vector>
 #include <winbase.h>
 #include <windef.h>
+#include <wingdi.h>
 #include <winnt.h>
 #include <winuser.h>
+
+#pragma comment(lib, "coredll.lib")
 
 std::array<DWORD, 1024> processIDs;
 
@@ -63,6 +68,50 @@ void GetFileStem(const char *path, char *output_buffer, size_t buffer_size, size
     *outLength = length;
 }
 
+uint64_t GetFileIconGPUHandle(const char* file) {
+	uint64_t gpuHandle;
+	SHFILEINFO fileInfo{};
+	DWORD_PTR result = SHGetFileInfo(
+        file,
+        0,
+        &fileInfo,
+        sizeof(SHFILEINFO),
+        SHGFI_ICON | SHGFI_SMALLICON
+    );
+	HICON icon = fileInfo.hIcon;
+	ICONINFO iconInfo{};
+	BITMAP bmp{};
+	BITMAPINFO bmpInfo = {0};
+	constexpr size_t MAX_ICON_SIZE = 16 * 16 * 4;
+	std::array<std::byte, MAX_ICON_SIZE> imageBuffer;
+	HDC hdc = CreateCompatibleDC(nullptr);
+    BITMAPINFOHEADER biInfoHeader;
+
+	if (!GetIconInfo(icon, &iconInfo)) {
+		//GetLastError() if this becomes too unmanageable
+		goto cleanup;
+	}
+	
+	GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmp);
+
+    biInfoHeader.biSize = sizeof(BITMAPINFOHEADER);
+    biInfoHeader.biWidth = bmp.bmWidth;
+    biInfoHeader.biHeight = -bmp.bmHeight; // Negative height for top-down DIB
+    biInfoHeader.biPlanes = 1;
+    biInfoHeader.biBitCount = 32; // Request 32-bit (RGBA) format
+    biInfoHeader.biCompression = BI_RGB;	
+	bmpInfo.bmiHeader = biInfoHeader;
+	GetDIBits(hdc, (HBITMAP)&bmp, 0, bmp.bmHeight, imageBuffer.data(), &bmpInfo, DIB_RGB_COLORS);
+	
+	gpuHandle = ImageUtils::LoadImageToGPU(imageBuffer.data(), imageBuffer.size(), bmp.bmWidth, bmp.bmHeight);
+	
+	cleanup: {
+		DestroyIcon(fileInfo.hIcon);
+		ReleaseDC(nullptr, hdc);
+	}
+	return gpuHandle;
+}
+
 EError ProcessLayer::FetchProcessesInto(std::vector<WinProcess>* target) {
 	DWORD processCountBytes;
 	BOOL fetchSuccess = EnumProcesses(processIDs.data(), processIDs.size() * sizeof(DWORD), &processCountBytes);
@@ -77,22 +126,29 @@ EError ProcessLayer::FetchProcessesInto(std::vector<WinProcess>* target) {
 	    processInfo.windowHandle = reinterpret_cast<uint64_t>(hwnd);
 
         DWORD pid;
+        DWORD getFileNameRes;
+        int32_t windowTextLength;
+        size_t outLength;
+        char processTextBuffer[WinProcess::MAX_PROCESS_NAME];
+        constexpr size_t separatorLength = 4;
+        
         GetWindowThreadProcessId(hwnd, &pid);
         processInfo.pid = static_cast<uint64_t>(pid);
         HANDLE pHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
         
-        char processTextBuffer[WinProcess::MAX_PROCESS_NAME];
-        DWORD res = GetModuleFileNameEx(pHandle, 0, processTextBuffer, WinProcess::MAX_PROCESS_NAME);
-        size_t outLength;
+        if (pHandle == nullptr) {
+        	goto cleanup;
+        }
+        
+        getFileNameRes = GetModuleFileNameEx(pHandle, 0, processTextBuffer, WinProcess::MAX_PROCESS_NAME);
         GetFileStem(processTextBuffer, processInfo.name, WinProcess::MAX_PROCESS_NAME, &outLength);
         
-        constexpr size_t separatorLength = 4;
         strcat_s(processInfo.name, " - ");
         
-		int32_t length = GetWindowText(hwnd, processTextBuffer, WinProcess::MAX_PROCESS_NAME - outLength - separatorLength);
+		windowTextLength = GetWindowText(hwnd, processTextBuffer, WinProcess::MAX_PROCESS_NAME - outLength - separatorLength);
         strcat_s(processInfo.name, processTextBuffer);
 		
-	    if (!IsWindowVisible(hwnd) || res == 0 || length < 1) {
+	    if (!IsWindowVisible(hwnd) || getFileNameRes == 0 || windowTextLength < 1) {
 	    	goto cleanup;
 	    }
 

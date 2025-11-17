@@ -1,6 +1,7 @@
 #include "Application.hpp"
 #include "FuzzKillUI.hpp"
 #include <cstdint>
+#include <processthreadsapi.h>
 #define CLAY_IMPLEMENTATION
 #include "clay.h"
 #include "raylib.h"
@@ -22,17 +23,18 @@ void HandleClayErrors(Clay_ErrorData error) {
 void Application::PreAllocate() {
 	SetTraceLogLevel(LOG_ERROR);
 	uint32_t memorySize = Clay_MinMemorySize();
-	clayArena = Clay_CreateArenaWithCapacityAndMemory(memorySize, malloc(memorySize));
+	void* memory = new std::byte[memorySize];
+	clayArena = Clay_CreateArenaWithCapacityAndMemory(memorySize, memory);
 	fuzzKillUI.PreAllocate();
 	Clay_Raylib_Initialize(INIT_WIDTH, INIT_HEIGHT, "FuzzKill", FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN);
 	Clay_Initialize(clayArena, (Clay_Dimensions){INIT_WIDTH, INIT_HEIGHT}, (Clay_ErrorHandler){HandleClayErrors});
     Clay_SetMeasureTextFunction(Raylib_MeasureText, fonts);
     SetWindowMonitor(1);
+    this->LoadResources();
 }
 
 void Application::Init() {
 	ClearWindowState(FLAG_WINDOW_HIDDEN);
-    this->LoadResources();
     fuzzKillUI.Init();
 }
 

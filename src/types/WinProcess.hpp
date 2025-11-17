@@ -5,5 +5,6 @@ struct WinProcess {
 	constexpr static inline uint32_t MAX_PROCESS_NAME = 128;
 	uint64_t pid; // Non standard, this is used bc of the typedef on the Windows API
 	uint64_t windowHandle;
+	uint64_t iconImageHandle; // This is a raylib-side handle, not a WinAPI HICON
 	char name[MAX_PROCESS_NAME];
 };
