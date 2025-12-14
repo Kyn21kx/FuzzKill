@@ -26,6 +26,7 @@ constexpr Clay_Sizing SIZE_AUTO_GROW_XY = Clay_Sizing { CLAY_SIZING_GROW(), CLAY
 constexpr float BG_COLOR_ALPHA = 50;
 constexpr float INPUT_DELAY_TIME = 0.16f;
 float inputDelayTimer = 0.f;
+FuzzyStringFilter_t<std::vector<std::string_view>, std::string_view> filterer{};
 
 Clay_TextElementConfig DefaultText(uint16_t fontSize, const ConfigData& config) {
 	Clay_Color color = ColorUtils::ToClayColor(config.foregroundColor);
@@ -127,7 +128,7 @@ void FuzzKillUI::HandleKeyboardInput(float delta) {
 		// Reset the operation result string here
 		std::memset(this->m_operationResultStr, 0, MAX_OPERATION_RESULT_COUNT);
 		this->m_query += c;
-		this->m_filteredProcesses = FuzzyFindIndices<std::vector<std::string_view>, std::string_view>(this->m_activeProcessesNames, this->m_query);
+		this->m_filteredProcesses = FuzzyFindIndices(&filterer, this->m_activeProcessesNames, this->m_query);
 		this->selectedProcess = 0;
 	}
 	if (IsKeyPressed(KEY_ESCAPE)) {
@@ -135,7 +136,7 @@ void FuzzKillUI::HandleKeyboardInput(float delta) {
 	}
 	if ((IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) && !this->m_query.empty()) {
 		this->m_query.erase(this->m_query.size() - 1);
-		this->m_filteredProcesses = FuzzyFindIndices<std::vector<std::string_view>, std::string_view>(this->m_activeProcessesNames, this->m_query);
+		this->m_filteredProcesses = FuzzyFindIndices(&filterer, this->m_activeProcessesNames, this->m_query);
 		this->selectedProcess = 0;
 		this->ResetFilterIfNeeded();
 	}

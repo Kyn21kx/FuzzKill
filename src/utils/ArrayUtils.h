@@ -5,9 +5,11 @@
 #include <zadeh/StringArrayFilterer.h>
 
 template <class ArrayType, class ElementType>
-inline std::vector<size_t> FuzzyFindIndices(const ArrayType &candidates, const std::string &query)
+using FuzzyStringFilter_t = zadeh::StringArrayFilterer<ArrayType, ArrayType, ElementType>;
+
+template <class ArrayType, class ElementType>
+inline std::vector<size_t> FuzzyFindIndices(FuzzyStringFilter_t<ArrayType, ElementType>* filterer, const ArrayType &candidates, const std::string &query)
 {
-	zadeh::StringArrayFilterer<ArrayType, ArrayType, ElementType> filterer{};
-	filterer.set_candidates(candidates);
-	return filterer.filter_indices(query);
+	filterer->set_candidates(candidates);
+	return filterer->filter_indices(query);
 }

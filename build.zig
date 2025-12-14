@@ -17,7 +17,7 @@ pub fn build(b: *std.Build) void {
     clayLibRendering.linkSystemLibrary("c");
 
     const compileFlags = &[_][]const u8{ "-std=c++20", "-Wno-reorder" };
-    const sources = &[_][]const u8{ "main.cpp", "Application.cpp", "FuzzKillUI.cpp", "utils/ProcessLayer.cpp", "utils/ConfigLayer.cpp" };
+    const sources = &[_][]const u8{ "main.cpp", "Application.cpp", "FuzzKillUI.cpp", "utils/ProcessLayer.cpp", "utils/ConfigLayer.cpp", "utils/ImageUtils.cpp" };
     exe.addCSourceFiles(.{ .files = sources, .flags = compileFlags, .language = .cpp, .root = b.path("src/") });
 
     zcc.createStep(b, "cdb", targets.toOwnedSlice() catch @panic("OOM"));
@@ -28,6 +28,9 @@ pub fn build(b: *std.Build) void {
 
     exe.linkLibrary(clayLibRendering);
     exe.linkSystemLibrary("raylib");
+    exe.linkSystemLibrary("gdi32");
+    exe.linkSystemLibrary("user32");
+    exe.linkSystemLibrary("shell32");
     exe.addLibraryPath(b.path("third_party/raylib/lib"));
     exe.linkLibCpp();
     exe.linkSystemLibrary("c");
