@@ -17,7 +17,7 @@
 ### Showcase
 
 https://github.com/user-attachments/assets/8463186d-d534-4608-a0a2-6ca334cea582
-
+#### [Handmade with love](https://handmade.network/p/762/fuzzkill/)
 ### Building
 This project uses the Zig toolchain for C and C++, [download the latest version of Zig](https://ziglang.org/learn/getting-started/)
 Then run
