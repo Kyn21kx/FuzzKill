@@ -146,7 +146,7 @@ void FuzzKillUI::HandleKeyboardInput(float delta) {
 	else if (IsKeyPressed(KEY_UP) || IsKeyPressedRepeat(KEY_UP)) {
 		this->selectedProcess = (this->selectedProcess - 1) % this->m_filteredProcesses.size();
 	}
-	if (IsKeyPressed(KEY_ENTER)) {
+	if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
 		this->OnTextSubmit();
 	}
 }
