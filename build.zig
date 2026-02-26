@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) void {
 
     // Use clay as a library so its behavior is self contained
     const clayLibRendering = b.addStaticLibrary(.{ .name = "clay", .target = target });
-    clayLibRendering.addCSourceFile(.{ .file = b.path("src/renderer/clay_renderer_raylib.c"), .flags = &[_][]const u8{"-std=c++20"}, .language = .cpp });
+    clayLibRendering.addCSourceFile(.{ .file = b.path("src/renderer/clay_renderer_raylib.c"), .flags = &[_][]const u8{ "-std=c++20", "-Os" }, .language = .cpp });
     clayLibRendering.addIncludePath(b.path("third_party/clay/include/"));
     clayLibRendering.addIncludePath(b.path("third_party/raylib/include/"));
     clayLibRendering.linkSystemLibrary("c");
