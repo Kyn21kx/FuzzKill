@@ -1,9 +1,10 @@
 #pragma once
 
+#include <cstdint>
 
 class Application {
 public:
-	void PreAllocate();
+	void PreAllocate(int32_t targetMonitor = 1);
 
 	void Init();
 	

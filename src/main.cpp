@@ -1,6 +1,7 @@
 #include "Application.hpp"
 #include <cstdio>
 #include <cstdlib>
+#include <string>
 
 Application g_app;
 
@@ -23,7 +24,20 @@ const int HOTKEY_ID = 1;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	g_app.PreAllocate();
+    // Find the monitor argument if any
+    std::string cmdArgs = lpCmdLine;
+    constexpr std::string_view MONITOR_ARG_STR = "--monitor";
+    size_t idx = cmdArgs.find(MONITOR_ARG_STR.data());
+
+    int32_t targetMonitor = 1;
+    
+    if (idx != std::string::npos) {
+        size_t monitorIdx = idx + MONITOR_ARG_STR.size(); // Account for space by not doing -1
+        std::string monitorStr = cmdArgs.substr(monitorIdx);
+        targetMonitor = std::atoi(monitorStr.c_str());
+    }
+
+	g_app.PreAllocate(targetMonitor);
     // Register window class
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_HREDRAW | CS_VREDRAW, WndProc, 
         0, 0, hInstance, NULL, NULL, NULL, NULL, g_szClassName, NULL };
