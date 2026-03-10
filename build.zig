@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) void {
     clayLibRendering.addIncludePath(b.path("third_party/raylib/include/"));
     clayLibRendering.linkSystemLibrary("c");
 
-    const compileFlags = &[_][]const u8{ "-std=c++20", "-Wno-reorder" };
+    const compileFlags = &[_][]const u8{ "-std=c++20", "-Wno-reorder", "-g" };
     const sources = &[_][]const u8{ "main.cpp", "Application.cpp", "FuzzKillUI.cpp", "utils/ProcessLayer.cpp", "utils/ConfigLayer.cpp", "utils/ImageUtils.cpp" };
     exe.addCSourceFiles(.{ .files = sources, .flags = compileFlags, .language = .cpp, .root = b.path("src/") });
 
