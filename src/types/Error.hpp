@@ -10,5 +10,6 @@ enum class EError : uint32_t {
 	FailedToEnumModuleFromProcess,
 	DivideByZero,
 	ParseFailed,
+	InvalidArgument,
 	FileNotFound
 };

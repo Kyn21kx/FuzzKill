@@ -106,11 +106,43 @@ void FuzzKillUI::DrawUI() {
         	headerText = StrToClayString(this->m_operationResultStr, strlen(this->m_operationResultStr));
         }
         CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72, this->m_config)));
-        for (size_t i = 0; i < this->m_filteredProcesses.size(); i++) {
-        	const WinProcess& process = this->m_activeProcesses[this->m_filteredProcesses[i]];
-        	this->DrawProcessListItem(process, i);
+        if (this->m_query.starts_with('/')) {
+        	this->m_state = EState::CommandMode;
+        	this->DrawCommands();
+        }
+        else {
+        	this->m_state = EState::ProcessMode;
+	        for (size_t i = 0; i < this->m_filteredProcesses.size(); i++) {
+	        	const WinProcess& process = this->m_activeProcesses[this->m_filteredProcesses[i]];
+	        	this->DrawProcessListItem(process, i);
+	        }
         }
     }
+}
+
+
+constexpr std::array<std::string_view, 2> COMMANDS_LIST = { "/task-add", "/task-complete" };
+
+void FuzzKillUI::DrawCommands() {
+	// Get the known commands
+	size_t index = 0;
+	for (const std::string_view& cmd : COMMANDS_LIST) {
+		
+		const Clay_LayoutConfig layoutConfig = {
+			.sizing = SIZE_AUTO_GROW_XY
+		};
+		const Clay_BorderElementConfig borderConfig = {
+			.color = ColorUtils::Red()
+		};
+		const Clay_Color inactiveColor = ColorUtils::ToClayColor(this->m_config.itemColor);
+		const Clay_Color activeColor = ColorUtils::ToClayColor(this->m_config.highlightColor);
+
+		Clay_String nameStr = StrToClayString(cmd.data(), cmd.size());
+		CLAY({ .id = CLAY_IDI("CommandsContainer", index), .layout = layoutConfig, .backgroundColor = index == selectedProcess ? activeColor : inactiveColor, .border = borderConfig}) {
+		    CLAY_TEXT(nameStr, CLAY_TEXT_CONFIG(DefaultText(32, this->m_config)));
+		}
+		index++;
+	}
 }
 
 
@@ -133,6 +165,7 @@ void FuzzKillUI::HandleKeyboardInput(float delta) {
 	}
 	if (IsKeyPressed(KEY_ESCAPE)) {
 		SetWindowState(FLAG_WINDOW_HIDDEN);
+		this->m_state = EState::Background;
 	}
 	if ((IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) && !this->m_query.empty()) {
 		this->m_query.erase(this->m_query.size() - 1);
@@ -141,13 +174,20 @@ void FuzzKillUI::HandleKeyboardInput(float delta) {
 		this->ResetFilterIfNeeded();
 	}
 	if (IsKeyPressed(KEY_DOWN) || IsKeyPressedRepeat(KEY_DOWN)) {
-		this->selectedProcess = (this->selectedProcess + 1) % this->m_filteredProcesses.size();
+		this->selectedProcess = (this->selectedProcess + 1) % this->ActiveListMaxSize();
 	}
 	else if (IsKeyPressed(KEY_UP) || IsKeyPressedRepeat(KEY_UP)) {
-		this->selectedProcess = (this->selectedProcess - 1) % this->m_filteredProcesses.size();
+		this->selectedProcess = (this->selectedProcess - 1) % this->ActiveListMaxSize();
 	}
 	if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
 		this->OnTextSubmit();
+	}
+	if (IsKeyPressed(KEY_TAB)) {
+		std::string_view content = this->GetContentUnderSelection();
+		std::memset(this->m_operationResultStr, 0, MAX_OPERATION_RESULT_COUNT);
+		this->m_query = content.substr(0, WinProcess::MAX_PROCESS_NAME / 2);
+		this->m_filteredProcesses = FuzzyFindIndices(&filterer, this->m_activeProcessesNames, this->m_query);
+		this->selectedProcess = 0;
 	}
 }
 
@@ -174,6 +214,9 @@ EError ParseOperation(const std::string& expression, float* outResult) {
 		}
 		if (MathUtils::IsOperator(token[0])) {
 			while (!operators.empty()) {
+				if (numbers.empty()) {
+					return EError::ParseFailed;
+				}
 				// Pop two numbers and one operator
                 float b = numbers.top();
                 numbers.pop();
@@ -196,6 +239,9 @@ EError ParseOperation(const std::string& expression, float* outResult) {
 		else if (token[0] == ')') {
 			while (!operators.empty() && (char)operators.top() != '(') {
 				// Pop two numbers and one operator
+				if (numbers.empty()) {
+					return EError::ParseFailed;
+				}
                 float b = numbers.top();
                 numbers.pop();
                 float a = numbers.top();
@@ -220,6 +266,9 @@ EError ParseOperation(const std::string& expression, float* outResult) {
 	
     // While the operator stack is not empty
     while (!operators.empty()) {
+		if (numbers.empty()) {
+			return EError::ParseFailed;
+		}
         // Pop two numbers and one operator
         float b = numbers.top();
         numbers.pop();
@@ -258,6 +307,18 @@ void FuzzKillUI::OnTextSubmit() {
 }
 
 
+size_t FuzzKillUI::ActiveListMaxSize() {
+	switch (this->m_state) {
+        case EState::Background:
+        	return 0;
+        case EState::ProcessMode:
+        	return this->m_filteredProcesses.size();
+        case EState::CommandMode:
+        	return COMMANDS_LIST.size();
+    }
+}
+
+
 void FuzzKillUI::DrawProcessListItem(const WinProcess& processInfo, int32_t index) {
 	const Clay_LayoutConfig layoutConfig = {
 		.sizing = SIZE_AUTO_GROW_XY
@@ -292,3 +353,19 @@ void FuzzKillUI::DrawListContainer(const std::string_view& text) {
 	    CLAY_TEXT(nameStr, CLAY_TEXT_CONFIG(DefaultText(32, this->m_config)));
 	}
 }
+
+
+std::string_view FuzzKillUI::GetContentUnderSelection() {
+	switch (this->m_state) {
+        case EState::Background:
+        	return "";
+        case EState::ProcessMode: {
+        	std::string_view content = this->m_activeProcessesNames[this->m_filteredProcesses[this->selectedProcess]];
+        	
+        	return content;
+    	}
+        case EState::CommandMode:
+        	return COMMANDS_LIST[this->selectedProcess];
+    }
+}
+
