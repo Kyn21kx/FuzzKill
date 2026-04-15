@@ -9,6 +9,7 @@
 #include "utils/ConfigLayer.hpp"
 #include "utils/MathUtils.hpp"
 #include "utils/ProcessLayer.hpp"
+#include "TaskManager.hpp"
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
@@ -99,24 +100,24 @@ void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
 
 void FuzzKillUI::DrawUI() {	
 	const Clay_Color backgroundColor = ColorUtils::ToClayColor(this->m_config.backgroundColor);
-    CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }, .backgroundColor = backgroundColor}) {
-    	bool isPlaceholder = this->m_query.empty();
-    	Clay_String headerText = isPlaceholder ? CLAY_STRING("Search for any running application...") :StrToClayString(this->m_query.c_str(), this->m_query.size());
-        if (this->m_query.empty() && strlen(this->m_operationResultStr) > 0) {
-        	headerText = StrToClayString(this->m_operationResultStr, strlen(this->m_operationResultStr));
-        }
-        CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72, this->m_config)));
-        if (this->m_query.starts_with('/')) {
-        	this->m_state = EState::CommandMode;
-        	this->DrawCommands();
-        }
-        else {
-        	this->m_state = EState::ProcessMode;
-	        for (size_t i = 0; i < this->m_filteredProcesses.size(); i++) {
-	        	const WinProcess& process = this->m_activeProcesses[this->m_filteredProcesses[i]];
-	        	this->DrawProcessListItem(process, i);
+    CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_LEFT_TO_RIGHT }, .backgroundColor = backgroundColor}) {
+	    CLAY({.id = CLAY_ID("ListContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }, .backgroundColor = backgroundColor}) {
+	    	bool isPlaceholder = this->m_query.empty();
+	    	Clay_String headerText = isPlaceholder ? CLAY_STRING("Search for any running application...") :StrToClayString(this->m_query.c_str(), this->m_query.size());
+
+	        CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72, this->m_config)));
+	        if (this->m_query.starts_with('/')) {
+	        	this->m_state = EState::CommandMode;
+	        	this->DrawCommands();
 	        }
-        }
+	        else {
+	        	this->m_state = EState::ProcessMode;
+		        for (size_t i = 0; i < this->m_filteredProcesses.size(); i++) {
+		        	const WinProcess& process = this->m_activeProcesses[this->m_filteredProcesses[i]];
+		        	this->DrawProcessListItem(process, i);
+		        }
+	        }
+	    }
     }
 }
 
@@ -287,17 +288,44 @@ EError ParseOperation(const std::string& expression, float* outResult) {
 	return EError::Ok;
 }
 
+
+constexpr std::string_view SubstrView(const std::string &str, int32_t offset, int32_t endIdx)
+{
+	return {str.begin() + offset, str.begin() + endIdx};
+}
+
+
 void FuzzKillUI::OnTextSubmit() {
 	// Check first if the string is a math expression
 	float operationResult;
 	EError operationErr = ParseOperation(this->m_query, &operationResult);
 	if (operationErr == EError::Ok) { // It WAS a math expression, let's update the UI accordingly
-		this->m_query = "";
 		std::snprintf(this->m_operationResultStr, MAX_OPERATION_RESULT_COUNT, "%f", operationResult);
+		this->m_query = this->m_operationResultStr;
 		return;
 	}
 
-	// TODO: Maybe do a shake or something
+	if (this->m_state == EState::CommandMode) {
+		// Find out if the command is valid
+		size_t firstSpace = this->m_query.find_first_of(' ');
+		std::string baseCommand = this->m_query.substr(0, firstSpace);
+
+		int64_t foundCommand = -1;
+		for (size_t i = 0; i < COMMANDS_LIST.size(); i++) {
+			if (COMMANDS_LIST.at(i) == baseCommand) {
+				foundCommand = i;
+				break;
+			}
+		}
+		
+		if (foundCommand != -1) {
+			EError err = TaskManager::AddTaskCommand(this->m_query);
+			if (err == EError::Ok) { this->m_query = ""; }
+			return;
+		}
+	}
+
+    // TODO: Maybe do a shake or something
 	if(this->selectedProcess >= this->m_filteredProcesses.size()) return;
 	int32_t processIndex = this->m_filteredProcesses[this->selectedProcess];
 	const WinProcess& process = this->m_activeProcesses[processIndex];
