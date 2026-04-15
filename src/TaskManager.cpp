@@ -2,9 +2,18 @@
 #include "types/Error.hpp"
 #include <array>
 #include <cctype>
+#include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <string>
 #include <string_view>
+
+constexpr std::string_view TASK_FILE_PATH = "tasks.dat";
+FILE* taskFile = nullptr;
+#define CLOSE_FILE_AND_RETURN(file, value)\
+fclose(file);\
+return value;
+
 
 TaskManager::DateInfo TaskManager::DateInfo::Now() {
     time_t now = time(nullptr);
@@ -52,6 +61,7 @@ void TaskManager::DateInfo::Add(uint16_t amount, TaskManager::TimeUnit unit) {
 
 // i.e /task-add Review PR -due 2h
 EError TaskManager::AddTaskCommand(std::string_view rawCommand) {
+    taskFile = fopen(TASK_FILE_PATH.data(), "a");
 	constexpr std::string_view baseCommand = "/task-add";
 
 	Task result{};
@@ -65,10 +75,14 @@ EError TaskManager::AddTaskCommand(std::string_view rawCommand) {
 
 	size_t duePosition = cmdInfo.find(DUE_SEPARATOR);
 
+
 	if (duePosition == std::string_view::npos) {
 		// We will leave the task's due date as undefined
-		return EError::Ok;
+	    printf("Task added: %s\n", cmdInfo.data());
+		CLOSE_FILE_AND_RETURN(taskFile, EError::Ok);
 	}
+
+    std::string_view name = cmdInfo.substr(0, duePosition);
 
 	// Now, the due date should be a number and a unit
 	std::array<char, 32> buffer;
@@ -85,13 +99,13 @@ EError TaskManager::AddTaskCommand(std::string_view rawCommand) {
 	}
 
 	if (digitCount <= 0) {
-		return EError::ParseFailed;
+		CLOSE_FILE_AND_RETURN(taskFile, EError::ParseFailed);
 	}
 
 	int32_t amount = std::atoi(buffer.data());
 
 	if (amount <= 0 || cmdInfo.size() <= subStrPosition + 1) {
-		return EError::InvalidArgument;
+		CLOSE_FILE_AND_RETURN(taskFile, EError::InvalidArgument);
 	}
 
 	// Then we get the unit of time, we assume it's simply the character right next to the number that isn't a whitespace
@@ -111,9 +125,12 @@ EError TaskManager::AddTaskCommand(std::string_view rawCommand) {
         case TimeUnit::Week:
 			break;
         default:
-        	return EError::InvalidArgument;
+        	CLOSE_FILE_AND_RETURN(taskFile, EError::InvalidArgument);
     }
 
     DateInfo dueDate = DateInfo::Now();
     dueDate.Add(amount, parsedTimeUnit);
+
+    fprintf(taskFile, "__TASK__ %.*s __DATE__ %d/%d/%d __TIME__ %d:%d\n", (int32_t)name.size(), name.data(), dueDate.year, dueDate.month, dueDate.day, dueDate.hour, dueDate.minute);
+    CLOSE_FILE_AND_RETURN(taskFile, EError::Ok);
 }
