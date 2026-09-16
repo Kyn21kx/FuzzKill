@@ -1,5 +1,6 @@
 #include "FuzzKillUI.hpp"
 #include "clay.h"
+#include "components/TextBox.hpp"
 #include "raylib.h"
 #include "renderer/clay_renderer_raylib.h"
 #include "types/Error.hpp"
@@ -9,6 +10,7 @@
 #include "utils/ConfigLayer.hpp"
 #include "utils/MathUtils.hpp"
 #include "utils/ProcessLayer.hpp"
+#include "TaskManager.hpp"
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
@@ -88,29 +90,81 @@ void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
     ClearBackground(bgColor);
 
     this->HandleKeyboardInput(delta);
-    this->DrawUI();
+    this->DrawUI(fonts);
 	    
     Clay_RenderCommandArray renderCommands = Clay_EndLayout();
     Clay_Raylib_Render(renderCommands, fonts);
+
+
+	Clay_ElementId mainId = CLAY_ID("MainTextbox");
+	Clay_ElementData currElementData = Clay_GetElementData(mainId);
+	DrawCursorTextBox(fonts, this->m_query, currElementData, 72, ColorUtils::ToClayColor(this->m_config.highlightColor));
     
     EndDrawing();
 }
 
 
-void FuzzKillUI::DrawUI() {	
+void FuzzKillUI::DrawUI(Font* fonts) {	
 	const Clay_Color backgroundColor = ColorUtils::ToClayColor(this->m_config.backgroundColor);
-    CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }, .backgroundColor = backgroundColor}) {
-    	bool isPlaceholder = this->m_query.empty();
-    	Clay_String headerText = isPlaceholder ? CLAY_STRING("Search for any running application...") :StrToClayString(this->m_query.c_str(), this->m_query.size());
-        if (this->m_query.empty() && strlen(this->m_operationResultStr) > 0) {
-        	headerText = StrToClayString(this->m_operationResultStr, strlen(this->m_operationResultStr));
-        }
-        CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72, this->m_config)));
-        for (size_t i = 0; i < this->m_filteredProcesses.size(); i++) {
-        	const WinProcess& process = this->m_activeProcesses[this->m_filteredProcesses[i]];
-        	this->DrawProcessListItem(process, i);
-        }
+    CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_LEFT_TO_RIGHT }, .backgroundColor = backgroundColor}) {
+	    CLAY({.id = CLAY_ID("ListContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }, .backgroundColor = backgroundColor}) {
+	    	bool isPlaceholder = this->m_query.empty();
+	    	Clay_String headerText = isPlaceholder ? CLAY_STRING("Search for any running application...") :StrToClayString(this->m_query.c_str(), this->m_query.size());
+
+
+			Clay_ElementId mainId = CLAY_ID("MainTextbox");
+			CLAY({.id = mainId}) {
+		        CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72, this->m_config)));
+			}
+
+	        if (this->m_query.starts_with('/')) {
+	        	this->m_state = EState::CommandMode;
+	        	this->DrawCommands();
+	        }
+	        else {
+	        	this->m_state = EState::ProcessMode;
+		        for (size_t i = 0; i < this->m_filteredProcesses.size(); i++) {
+		        	const WinProcess& process = this->m_activeProcesses[this->m_filteredProcesses[i]];
+		        	this->DrawProcessListItem(process, i);
+		        }
+	        }
+	    }
     }
+}
+
+
+enum class ECommands {
+	AddTask,
+	CompleteTask,
+	ListTasks,
+	ShExecute,
+	Custom,
+	MAX
+};
+
+constexpr std::array<std::string_view, 5> COMMANDS_LIST = { "/task-add", "/task-complete", "/task-list", "/sh-exec", "/custom" };
+static_assert((int32_t)ECommands::MAX == COMMANDS_LIST.size(), "Command array and enum must match!");
+
+void FuzzKillUI::DrawCommands() {
+	// Get the known commands
+	size_t index = 0;
+	for (const std::string_view& cmd : COMMANDS_LIST) {
+		
+		const Clay_LayoutConfig layoutConfig = {
+			.sizing = SIZE_AUTO_GROW_XY
+		};
+		const Clay_BorderElementConfig borderConfig = {
+			.color = ColorUtils::Red()
+		};
+		const Clay_Color inactiveColor = ColorUtils::ToClayColor(this->m_config.itemColor);
+		const Clay_Color activeColor = ColorUtils::ToClayColor(this->m_config.highlightColor);
+
+		Clay_String nameStr = StrToClayString(cmd.data(), cmd.size());
+		CLAY({ .id = CLAY_IDI("CommandsContainer", index), .layout = layoutConfig, .backgroundColor = index == selectedProcess ? activeColor : inactiveColor, .border = borderConfig}) {
+		    CLAY_TEXT(nameStr, CLAY_TEXT_CONFIG(DefaultText(32, this->m_config)));
+		}
+		index++;
+	}
 }
 
 
@@ -133,6 +187,7 @@ void FuzzKillUI::HandleKeyboardInput(float delta) {
 	}
 	if (IsKeyPressed(KEY_ESCAPE)) {
 		SetWindowState(FLAG_WINDOW_HIDDEN);
+		this->m_state = EState::Background;
 	}
 	if ((IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) && !this->m_query.empty()) {
 		this->m_query.erase(this->m_query.size() - 1);
@@ -141,13 +196,20 @@ void FuzzKillUI::HandleKeyboardInput(float delta) {
 		this->ResetFilterIfNeeded();
 	}
 	if (IsKeyPressed(KEY_DOWN) || IsKeyPressedRepeat(KEY_DOWN)) {
-		this->selectedProcess = (this->selectedProcess + 1) % this->m_filteredProcesses.size();
+		this->selectedProcess = (this->selectedProcess + 1) % this->ActiveListMaxSize();
 	}
 	else if (IsKeyPressed(KEY_UP) || IsKeyPressedRepeat(KEY_UP)) {
-		this->selectedProcess = (this->selectedProcess - 1) % this->m_filteredProcesses.size();
+		this->selectedProcess = (this->selectedProcess - 1) % this->ActiveListMaxSize();
 	}
 	if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
 		this->OnTextSubmit();
+	}
+	if (IsKeyPressed(KEY_TAB)) {
+		std::string_view content = this->GetContentUnderSelection();
+		std::memset(this->m_operationResultStr, 0, MAX_OPERATION_RESULT_COUNT);
+		this->m_query = content.substr(0, WinProcess::MAX_PROCESS_NAME / 2);
+		this->m_filteredProcesses = FuzzyFindIndices(&filterer, this->m_activeProcessesNames, this->m_query);
+		this->selectedProcess = 0;
 	}
 }
 
@@ -174,6 +236,9 @@ EError ParseOperation(const std::string& expression, float* outResult) {
 		}
 		if (MathUtils::IsOperator(token[0])) {
 			while (!operators.empty()) {
+				if (numbers.empty()) {
+					return EError::ParseFailed;
+				}
 				// Pop two numbers and one operator
                 float b = numbers.top();
                 numbers.pop();
@@ -196,6 +261,9 @@ EError ParseOperation(const std::string& expression, float* outResult) {
 		else if (token[0] == ')') {
 			while (!operators.empty() && (char)operators.top() != '(') {
 				// Pop two numbers and one operator
+				if (numbers.empty()) {
+					return EError::ParseFailed;
+				}
                 float b = numbers.top();
                 numbers.pop();
                 float a = numbers.top();
@@ -220,6 +288,9 @@ EError ParseOperation(const std::string& expression, float* outResult) {
 	
     // While the operator stack is not empty
     while (!operators.empty()) {
+		if (numbers.empty()) {
+			return EError::ParseFailed;
+		}
         // Pop two numbers and one operator
         float b = numbers.top();
         numbers.pop();
@@ -238,23 +309,84 @@ EError ParseOperation(const std::string& expression, float* outResult) {
 	return EError::Ok;
 }
 
+
+constexpr std::string_view SubstrView(const std::string &str, int32_t offset, int32_t endIdx)
+{
+	return {str.begin() + offset, str.begin() + endIdx};
+}
+
+
 void FuzzKillUI::OnTextSubmit() {
 	// Check first if the string is a math expression
 	float operationResult;
 	EError operationErr = ParseOperation(this->m_query, &operationResult);
 	if (operationErr == EError::Ok) { // It WAS a math expression, let's update the UI accordingly
-		this->m_query = "";
 		std::snprintf(this->m_operationResultStr, MAX_OPERATION_RESULT_COUNT, "%f", operationResult);
+		this->m_query = this->m_operationResultStr;
 		return;
 	}
 
-	// TODO: Maybe do a shake or something
+	if (this->m_state == EState::CommandMode) {
+		// Find out if the command is valid
+		size_t firstSpace = this->m_query.find_first_of(' ');
+		std::string baseCommand = this->m_query.substr(0, firstSpace);
+
+		int64_t foundCommand = -1;
+		for (size_t i = 0; i < COMMANDS_LIST.size(); i++) {
+			if (COMMANDS_LIST.at(i) == baseCommand) {
+				foundCommand = i;
+				break;
+			}
+		}
+
+		switch (static_cast<ECommands>(foundCommand)) {
+            case ECommands::AddTask: {
+				EError err = TaskManager::AddTaskCommand(this->m_query);
+				if (err == EError::Ok) { this->m_query = ""; }
+            	break;
+        	}
+            case ECommands::CompleteTask: {
+            	break;
+        	}
+            case ECommands::ListTasks: {
+            	this->m_state = EState::TaskListMode;
+            	this->m_query = "";
+            	break;
+        	}
+            case ECommands::ShExecute: {
+            	break;
+        	}
+            case ECommands::Custom: {
+            	break;
+        	}
+            default:
+              break;
+        }
+
+        if (foundCommand != -1) {
+			return;
+		}
+	}
+
+    // TODO: Maybe do a shake or something
 	if(this->selectedProcess >= this->m_filteredProcesses.size()) return;
 	int32_t processIndex = this->m_filteredProcesses[this->selectedProcess];
 	const WinProcess& process = this->m_activeProcesses[processIndex];
 	ProcessLayer::SwitchWindow(process.windowHandle);
 	// Kill raylib here
 	SetWindowState(FLAG_WINDOW_HIDDEN);
+}
+
+
+size_t FuzzKillUI::ActiveListMaxSize() {
+	switch (this->m_state) {
+        case EState::Background:
+        	return 0;
+        case EState::ProcessMode:
+        	return this->m_filteredProcesses.size();
+        case EState::CommandMode:
+        	return COMMANDS_LIST.size();
+    }
 }
 
 
@@ -292,3 +424,19 @@ void FuzzKillUI::DrawListContainer(const std::string_view& text) {
 	    CLAY_TEXT(nameStr, CLAY_TEXT_CONFIG(DefaultText(32, this->m_config)));
 	}
 }
+
+
+std::string_view FuzzKillUI::GetContentUnderSelection() {
+	switch (this->m_state) {
+        case EState::Background:
+        	return "";
+    	case EState::TaskListMode:
+        case EState::ProcessMode: {
+        	std::string_view content = this->m_activeProcessesNames[this->m_filteredProcesses[this->selectedProcess]];
+        	return content;
+    	}
+        case EState::CommandMode:
+        	return COMMANDS_LIST[this->selectedProcess];
+    }
+}
+
