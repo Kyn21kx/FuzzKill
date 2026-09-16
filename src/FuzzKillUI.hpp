@@ -11,7 +11,8 @@ struct Font;
 enum class EState : uint8_t {
 	Background = 0,
 	ProcessMode,
-	CommandMode
+	CommandMode,
+	TaskListMode
 };
 
 class FuzzKillUI {
@@ -25,7 +26,7 @@ public:
 	void OnUpdate(float delta, Font* fonts);
 private:
 	static constexpr size_t MAX_OPERATION_RESULT_COUNT = 10;
-	void DrawUI();
+	void DrawUI(Font* fonts);
 
 	void RefreshProcesses();
 

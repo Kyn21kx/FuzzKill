@@ -1,5 +1,6 @@
 #include "FuzzKillUI.hpp"
 #include "clay.h"
+#include "components/TextBox.hpp"
 #include "raylib.h"
 #include "renderer/clay_renderer_raylib.h"
 #include "types/Error.hpp"
@@ -89,23 +90,33 @@ void FuzzKillUI::OnUpdate(float delta, Font* fonts) {
     ClearBackground(bgColor);
 
     this->HandleKeyboardInput(delta);
-    this->DrawUI();
+    this->DrawUI(fonts);
 	    
     Clay_RenderCommandArray renderCommands = Clay_EndLayout();
     Clay_Raylib_Render(renderCommands, fonts);
+
+
+	Clay_ElementId mainId = CLAY_ID("MainTextbox");
+	Clay_ElementData currElementData = Clay_GetElementData(mainId);
+	DrawCursorTextBox(fonts, this->m_query, currElementData, 72, ColorUtils::ToClayColor(this->m_config.highlightColor));
     
     EndDrawing();
 }
 
 
-void FuzzKillUI::DrawUI() {	
+void FuzzKillUI::DrawUI(Font* fonts) {	
 	const Clay_Color backgroundColor = ColorUtils::ToClayColor(this->m_config.backgroundColor);
     CLAY({.id = CLAY_ID("MainContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_LEFT_TO_RIGHT }, .backgroundColor = backgroundColor}) {
 	    CLAY({.id = CLAY_ID("ListContainer"), .layout = { .sizing = SIZE_AUTO_GROW_XY, .layoutDirection = CLAY_TOP_TO_BOTTOM }, .backgroundColor = backgroundColor}) {
 	    	bool isPlaceholder = this->m_query.empty();
 	    	Clay_String headerText = isPlaceholder ? CLAY_STRING("Search for any running application...") :StrToClayString(this->m_query.c_str(), this->m_query.size());
 
-	        CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72, this->m_config)));
+
+			Clay_ElementId mainId = CLAY_ID("MainTextbox");
+			CLAY({.id = mainId}) {
+		        CLAY_TEXT(headerText, CLAY_TEXT_CONFIG(DefaultText(72, this->m_config)));
+			}
+
 	        if (this->m_query.starts_with('/')) {
 	        	this->m_state = EState::CommandMode;
 	        	this->DrawCommands();
@@ -122,7 +133,17 @@ void FuzzKillUI::DrawUI() {
 }
 
 
-constexpr std::array<std::string_view, 2> COMMANDS_LIST = { "/task-add", "/task-complete" };
+enum class ECommands {
+	AddTask,
+	CompleteTask,
+	ListTasks,
+	ShExecute,
+	Custom,
+	MAX
+};
+
+constexpr std::array<std::string_view, 5> COMMANDS_LIST = { "/task-add", "/task-complete", "/task-list", "/sh-exec", "/custom" };
+static_assert((int32_t)ECommands::MAX == COMMANDS_LIST.size(), "Command array and enum must match!");
 
 void FuzzKillUI::DrawCommands() {
 	// Get the known commands
@@ -317,10 +338,32 @@ void FuzzKillUI::OnTextSubmit() {
 				break;
 			}
 		}
-		
-		if (foundCommand != -1) {
-			EError err = TaskManager::AddTaskCommand(this->m_query);
-			if (err == EError::Ok) { this->m_query = ""; }
+
+		switch (static_cast<ECommands>(foundCommand)) {
+            case ECommands::AddTask: {
+				EError err = TaskManager::AddTaskCommand(this->m_query);
+				if (err == EError::Ok) { this->m_query = ""; }
+            	break;
+        	}
+            case ECommands::CompleteTask: {
+            	break;
+        	}
+            case ECommands::ListTasks: {
+            	this->m_state = EState::TaskListMode;
+            	this->m_query = "";
+            	break;
+        	}
+            case ECommands::ShExecute: {
+            	break;
+        	}
+            case ECommands::Custom: {
+            	break;
+        	}
+            default:
+              break;
+        }
+
+        if (foundCommand != -1) {
 			return;
 		}
 	}
@@ -387,9 +430,9 @@ std::string_view FuzzKillUI::GetContentUnderSelection() {
 	switch (this->m_state) {
         case EState::Background:
         	return "";
+    	case EState::TaskListMode:
         case EState::ProcessMode: {
         	std::string_view content = this->m_activeProcessesNames[this->m_filteredProcesses[this->selectedProcess]];
-        	
         	return content;
     	}
         case EState::CommandMode:
